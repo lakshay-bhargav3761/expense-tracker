@@ -2,11 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import API from "../api/api";
-import { useApp } from "../context/AppContext";
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { updateUser } = useApp();
 
   const [form, setForm] = useState({
     name: "",
@@ -20,19 +18,25 @@ export default function Signup() {
   // ✅ redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (token) {
       navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+
     if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ✅ validation
     if (!form.name || !form.email || !form.password) {
       setError("Please fill all fields");
       return;
@@ -48,27 +52,21 @@ export default function Signup() {
 
       const res = await API.post("/auth/register", form);
 
-      const token = res.data?.token;
-      const user = res.data?.user;
+      // ✅ success
+      if (res.data) {
+        alert("Signup successful! Please login.");
 
-      // ❗ SAFETY CHECK
-      if (!token || !user) {
-        throw new Error("Invalid signup response");
+        // ❌ DON'T STORE TOKEN HERE
+        // ❌ DON'T LOGIN AUTOMATICALLY
+
+        navigate("/login", { replace: true });
       }
-
-      // ✅ STORE EVERYTHING (CRITICAL FIX)
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("userId", user._id); // 🔥 THIS WAS MISSING
-
-      // ✅ SYNC CONTEXT
-      updateUser(user);
-
-      // ✅ REDIRECT
-      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Signup error:", err);
-      setError(err.response?.data?.message || "Signup failed");
+
+      setError(
+        err.response?.data?.message || "Signup failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -79,10 +77,12 @@ export default function Signup() {
 
       {/* BACKGROUND */}
       <div className="absolute w-[500px] h-[500px] bg-primary opacity-20 blur-3xl rounded-full -top-20 -left-20"></div>
+
       <div className="absolute w-[400px] h-[400px] bg-secondary opacity-20 blur-3xl rounded-full bottom-0 right-0"></div>
 
       {/* LEFT */}
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-primary to-secondary text-white items-center justify-center flex-col space-y-4">
+
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -103,12 +103,14 @@ export default function Signup() {
           onSubmit={handleSubmit}
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass p-8 rounded-2xl w-full max-w-md space-y-6 shadow-2xl text-gray-800 dark:text-white dark:text-gray-200"
+          className="glass p-8 rounded-2xl w-full max-w-md space-y-6 shadow-2xl text-gray-800 dark:text-white"
         >
+
           <h2 className="text-2xl font-bold text-center">
             Create Account ✨
           </h2>
 
+          {/* ERROR */}
           {error && (
             <motion.p
               initial={{ opacity: 0 }}
@@ -122,6 +124,7 @@ export default function Signup() {
           {/* NAME */}
           <motion.input
             whileFocus={{ scale: 1.02 }}
+            type="text"
             name="name"
             placeholder="Name"
             value={form.name}
@@ -132,8 +135,8 @@ export default function Signup() {
           {/* EMAIL */}
           <motion.input
             whileFocus={{ scale: 1.02 }}
-            name="email"
             type="email"
+            name="email"
             placeholder="Email"
             value={form.email}
             onChange={handleChange}
@@ -143,8 +146,8 @@ export default function Signup() {
           {/* PASSWORD */}
           <motion.input
             whileFocus={{ scale: 1.02 }}
-            name="password"
             type="password"
+            name="password"
             placeholder="Password"
             value={form.password}
             onChange={handleChange}
@@ -161,7 +164,7 @@ export default function Signup() {
             {loading ? "Creating..." : "Sign Up"}
           </motion.button>
 
-          {/* LINK */}
+          {/* LOGIN LINK */}
           <p className="text-sm text-center">
             Already have an account?{" "}
             <span
@@ -171,6 +174,7 @@ export default function Signup() {
               Login
             </span>
           </p>
+
         </motion.form>
       </div>
     </div>
